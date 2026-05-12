@@ -1,4 +1,5 @@
 "use client";
+
 import {
   Badge,
   Card,
@@ -13,479 +14,44 @@ import {
 } from "antd";
 import Link from "next/link";
 import Marquee from "@/widgets/Marquee";
+import { MOCK_MODULES } from "./mock";
 import classnames from "classnames/bind";
 import styles from "./page.scss";
+
 const cx = classnames.bind(styles);
+const { Content } = Layout;
+
+type ModuleKind = keyof typeof KIND_LABEL;
+
+interface Module {
+  key: string;
+  name: string;
+  description: string;
+  href: string;
+  kind: ModuleKind;
+  tags: string[];
+  openInNewTab?: boolean;
+}
 
 const KIND_LABEL = {
   site: "站点",
   cms: "企业系统",
   tool: "工具",
-};
-
-export const MOCK_MODULES = [
-  {
-    key: "ai-chat",
-    name: "AI聊天",
-    description: "使用本地的 Ollama 调用大模型，支持多轮对话与流式输出。",
-    kind: "tool",
-    tags: ["AI", "聊天"],
-    href: "ai-chat",
-    openInNewTab: false,
-  },
-  {
-    key: "portal",
-    name: "门户站点",
-    description: "面向用户的站点入口（示例：外部站点 / 独立域名）。",
-    kind: "site",
-    tags: ["站点", "外部"],
-    href: "https://nextjs.org/docs/app/getting-started/installation",
-    openInNewTab: true,
-  },
-  {
-    key: "doc-center",
-    name: "文档中心",
-    description: "统一的产品文档、API 说明与版本变更记录。",
-    kind: "site",
-    tags: ["文档", "知识库"],
-    href: "https://nextjs.org/docs",
-    openInNewTab: true,
-  },
-  {
-    key: "model-hub",
-    name: "模型广场",
-    description: "浏览、下载与对比本地与云端推理模型配置。",
-    kind: "tool",
-    tags: ["AI", "模型"],
-    href: "model-hub",
-    openInNewTab: false,
-  },
-  {
-    key: "prompt-studio",
-    name: "提示词工坊",
-    description: "模板化管理提示词，支持变量注入与效果评测。",
-    kind: "tool",
-    tags: ["AI", "效率"],
-    href: "prompt-studio",
-    openInNewTab: false,
-  },
-  {
-    key: "rag-search",
-    name: "知识检索（RAG）",
-    description: "对接向量库，对企业文档做语义检索与引用溯源。",
-    kind: "tool",
-    tags: ["RAG", "检索"],
-    href: "rag-search",
-    openInNewTab: false,
-  },
-  {
-    key: "image-gen",
-    name: "文生图工作台",
-    description: "基于扩散模型的图像生成、风格预设与批量导出。",
-    kind: "tool",
-    tags: ["AI", "图像"],
-    href: "image-gen",
-    openInNewTab: false,
-  },
-  {
-    key: "speech-asr",
-    name: "语音转写",
-    description: "实时语音识别、说话人分离与时间轴对齐。",
-    kind: "tool",
-    tags: ["语音", "ASR"],
-    href: "speech-asr",
-    openInNewTab: false,
-  },
-  {
-    key: "tts-lab",
-    name: "语音合成实验室",
-    description: "多音色 TTS、语速调节与音频试听导出。",
-    kind: "tool",
-    tags: ["语音", "TTS"],
-    href: "tts-lab",
-    openInNewTab: false,
-  },
-  {
-    key: "code-assist",
-    name: "代码助手",
-    description: "在仓库上下文中生成补丁、解释差异与运行静态检查建议。",
-    kind: "tool",
-    tags: ["开发", "AI"],
-    href: "code-assist",
-    openInNewTab: false,
-  },
-  {
-    key: "data-label",
-    name: "数据标注台",
-    description: "分类、边界框与序列标注，支持多人协作与质检抽检。",
-    kind: "tool",
-    tags: ["数据", "标注"],
-    href: "data-label",
-    openInNewTab: false,
-  },
-  {
-    key: "eval-bench",
-    name: "评测基准",
-    description: "管理评测集、打分规则与模型横向对比报表。",
-    kind: "tool",
-    tags: ["评测", "质量"],
-    href: "eval-bench",
-    openInNewTab: false,
-  },
-  {
-    key: "obs-traces",
-    name: "调用链路追踪",
-    description: "查看 LLM 调用链、Token 消耗与错误重试记录。",
-    kind: "cms",
-    tags: ["运维", "可观测"],
-    href: "obs-traces",
-    openInNewTab: false,
-  },
-  {
-    key: "api-gateway",
-    name: "API 网关控制台",
-    description: "限流、鉴权、路由与后端服务健康检查。",
-    kind: "cms",
-    tags: ["网关", "安全"],
-    href: "api-gateway",
-    openInNewTab: false,
-  },
-  {
-    key: "user-admin",
-    name: "用户与权限",
-    description: "角色、组织、菜单权限与单点登录对接配置。",
-    kind: "cms",
-    tags: ["权限", "企业"],
-    href: "user-admin",
-    openInNewTab: false,
-  },
-  {
-    key: "billing",
-    name: "用量与计费",
-    description: "按模型与租户统计调用量、配额与账单导出。",
-    kind: "cms",
-    tags: ["计费", "运营"],
-    href: "billing",
-    openInNewTab: false,
-  },
-  {
-    key: "audit-log",
-    name: "审计日志",
-    description: "关键操作留痕、导出与合规留存策略。",
-    kind: "cms",
-    tags: ["合规", "安全"],
-    href: "audit-log",
-    openInNewTab: false,
-  },
-  {
-    key: "workflow",
-    name: "流程编排",
-    description: "拖拽编排多步工具调用与人工审批节点。",
-    kind: "tool",
-    tags: ["自动化", "流程"],
-    href: "workflow",
-    openInNewTab: false,
-  },
-  {
-    key: "scheduler",
-    name: "任务调度",
-    description: "Cron、队列积压监控与失败重试策略。",
-    kind: "cms",
-    tags: ["调度", "运维"],
-    href: "scheduler",
-    openInNewTab: false,
-  },
-  {
-    key: "file-drive",
-    name: "团队网盘",
-    description: "文件夹权限、版本历史与外链分享（受控）。",
-    kind: "tool",
-    tags: ["协作", "文件"],
-    href: "file-drive",
-    openInNewTab: false,
-  },
-  {
-    key: "wiki",
-    name: "内部 Wiki",
-    description: "结构化百科、全文搜索与页面审批发布。",
-    kind: "site",
-    tags: ["协作", "知识"],
-    href: "https://example.com/wiki",
-    openInNewTab: true,
-  },
-  {
-    key: "crm-lite",
-    name: "轻量 CRM",
-    description: "线索、客户跟进与销售漏斗简易视图。",
-    kind: "cms",
-    tags: ["销售", "客户"],
-    href: "crm-lite",
-    openInNewTab: false,
-  },
-  {
-    key: "ticket-desk",
-    name: "工单系统",
-    description: "工单分派、SLA 与满意度回访。",
-    kind: "cms",
-    tags: ["支持", "工单"],
-    href: "ticket-desk",
-    openInNewTab: false,
-  },
-  {
-    key: "analytics",
-    name: "行为分析",
-    description: "埋点事件、漏斗与留存趋势大盘。",
-    kind: "cms",
-    tags: ["数据", "分析"],
-    href: "analytics",
-    openInNewTab: false,
-  },
-  {
-    key: "ab-test",
-    name: "实验平台",
-    description: "灰度发布、特性开关与实验指标对比。",
-    kind: "tool",
-    tags: ["增长", "实验"],
-    href: "ab-test",
-    openInNewTab: false,
-  },
-  {
-    key: "cdn-cache",
-    name: "CDN 与缓存",
-    description: "边缘缓存规则、预热与命中率分析。",
-    kind: "cms",
-    tags: ["性能", "网络"],
-    href: "cdn-cache",
-    openInNewTab: false,
-  },
-  {
-    key: "secrets",
-    name: "密钥管理",
-    description: "API Key、证书与轮换策略，对接 KMS。",
-    kind: "cms",
-    tags: ["安全", "密钥"],
-    href: "secrets",
-    openInNewTab: false,
-  },
-  {
-    key: "feature-flags",
-    name: "特性开关",
-    description: "按环境、用户分桶下发功能开关与紧急熔断。",
-    kind: "cms",
-    tags: ["发布", "开关"],
-    href: "feature-flags",
-    openInNewTab: false,
-  },
-  {
-    key: "i18n",
-    name: "国际化文案",
-    description: "多语言词条管理、翻译进度与缺失检测。",
-    kind: "tool",
-    tags: ["i18n", "产品"],
-    href: "i18n",
-    openInNewTab: false,
-  },
-  {
-    key: "design-tokens",
-    name: "设计令牌",
-    description: "颜色、字号、间距令牌同步到代码与文档站。",
-    kind: "tool",
-    tags: ["设计", "前端"],
-    href: "design-tokens",
-    openInNewTab: false,
-  },
-  {
-    key: "mock-server",
-    name: "Mock 服务",
-    description: "接口契约、示例响应与联调环境切换。",
-    kind: "tool",
-    tags: ["开发", "Mock"],
-    href: "mock-server",
-    openInNewTab: false,
-  },
-  {
-    key: "e2e-ci",
-    name: "E2E 与 CI",
-    description: "Playwright 用例、制品与流水线状态汇总。",
-    kind: "cms",
-    tags: ["测试", "CI"],
-    href: "e2e-ci",
-    openInNewTab: false,
-  },
-  {
-    key: "release-notes",
-    name: "发版说明站",
-    description: "对外公开的产品更新与迁移指南。",
-    kind: "site",
-    tags: ["站点", "更新"],
-    href: "https://example.com/releases",
-    openInNewTab: true,
-  },
-  {
-    key: "status-page",
-    name: "服务状态页",
-    description: "组件可用性、事故通告与订阅通知。",
-    kind: "site",
-    tags: ["运维", "外部"],
-    href: "https://example.com/status",
-    openInNewTab: true,
-  },
-  {
-    key: "partner-portal",
-    name: "合作伙伴门户",
-    description: "渠道资质、结算资料与合作素材下载。",
-    kind: "site",
-    tags: ["商务", "外部"],
-    href: "https://example.com/partners",
-    openInNewTab: true,
-  },
-  {
-    key: "help-center",
-    name: "帮助中心",
-    description: "常见问题、视频教程与提交工单入口。",
-    kind: "site",
-    tags: ["支持", "用户"],
-    href: "https://example.com/help",
-    openInNewTab: true,
-  },
-  {
-    key: "community",
-    name: "用户社区",
-    description: "话题讨论、精华帖与专家答疑（示例外链）。",
-    kind: "site",
-    tags: ["社区", "用户"],
-    href: "https://example.com/community",
-    openInNewTab: true,
-  },
-  {
-    key: "embed-widgets",
-    name: "嵌入组件市场",
-    description: "可嵌入第三方站点的聊天窗、搜索框与推荐条。",
-    kind: "tool",
-    tags: ["集成", "组件"],
-    href: "embed-widgets",
-    openInNewTab: false,
-  },
-  {
-    key: "connector-store",
-    name: "连接器商店",
-    description: "Slack、飞书、Notion 等连接器一键授权与同步策略。",
-    kind: "tool",
-    tags: ["集成", "SaaS"],
-    href: "connector-store",
-    openInNewTab: false,
-  },
-  {
-    key: "webhook-debug",
-    name: "Webhook 调试",
-    description: "捕获回调负载、重放与签名验证辅助工具。",
-    kind: "tool",
-    tags: ["开发", "调试"],
-    href: "webhook-debug",
-    openInNewTab: false,
-  },
-  {
-    key: "sql-studio",
-    name: "SQL 工作室",
-    description: "只读查询、收藏语句与结果导出（受控数据源）。",
-    kind: "tool",
-    tags: ["数据", "SQL"],
-    href: "sql-studio",
-    openInNewTab: false,
-  },
-  {
-    key: "bi-dashboard",
-    name: "BI 看板",
-    description: "拖拽图表、数据集权限与定时推送。",
-    kind: "cms",
-    tags: ["BI", "报表"],
-    href: "bi-dashboard",
-    openInNewTab: false,
-  },
-  {
-    key: "inventory",
-    name: "库存管理",
-    description: "SKU、入库出库与低库存预警（演示模块）。",
-    kind: "cms",
-    tags: ["供应链", "库存"],
-    href: "inventory",
-    openInNewTab: false,
-  },
-  {
-    key: "hr-onboarding",
-    name: "入职办理",
-    description: "员工信息收集、设备申请与账号开通清单。",
-    kind: "cms",
-    tags: ["人事", "流程"],
-    href: "hr-onboarding",
-    openInNewTab: false,
-  },
-  {
-    key: "meeting-notes",
-    name: "会议纪要",
-    description: "会议录音转写摘要、行动项跟踪与分享。",
-    kind: "tool",
-    tags: ["协作", "会议"],
-    href: "meeting-notes",
-    openInNewTab: false,
-  },
-  {
-    key: "whiteboard",
-    name: "在线白板",
-    description: "头脑风暴画布、便签与多人实时协作。",
-    kind: "tool",
-    tags: ["协作", "白板"],
-    href: "whiteboard",
-    openInNewTab: false,
-  },
-  {
-    key: "calendar",
-    name: "团队日历",
-    description: "会议室预订、忙闲视图与外部日历订阅。",
-    kind: "tool",
-    tags: ["协作", "日历"],
-    href: "calendar",
-    openInNewTab: false,
-  },
-  {
-    key: "okr",
-    name: "目标与关键结果",
-    description: "季度 OKR 对齐、进度更新与复盘记录。",
-    kind: "cms",
-    tags: ["管理", "目标"],
-    href: "okr",
-    openInNewTab: false,
-  },
-  {
-    key: "security-scan",
-    name: "安全扫描",
-    description: "依赖漏洞、容器镜像与密钥泄露扫描汇总。",
-    kind: "cms",
-    tags: ["安全", "合规"],
-    href: "security-scan",
-    openInNewTab: false,
-  },
-  {
-    key: "privacy-dsr",
-    name: "隐私与主体请求",
-    description: "用户数据导出、删除请求处理与留痕。",
-    kind: "cms",
-    tags: ["隐私", "合规"],
-    href: "privacy-dsr",
-    openInNewTab: false,
-  },
-];
+} as const;
 
 const AD_MARQUEE_TEXT =
   "MindBridge-AI 持续迭代中 · 如遇问题请联系管理员 · 感谢使用";
+
 function HomePage() {
+  const modules = MOCK_MODULES as Module[];
+
   return (
     <div className={cx("app-home")}>
       <Layout style={{ height: "100%", background: "#0b1220" }}>
         <div className={cx("app-header")}>顶部内容</div>
-        <Layout.Content style={{ padding: "0 20px 20px", overflow: "auto" }}>
+        <Content style={{ padding: "0 20px 20px", overflow: "auto" }}>
           <Row gutter={[16, 16]}>
-            {MOCK_MODULES.length === 0 ? (
+            {modules.length === 0 ? (
               <Col span={24}>
                 <Card style={{ background: "rgba(255,255,255,.06)" }}>
                   <Empty
@@ -499,11 +65,11 @@ function HomePage() {
               </Col>
             ) : null}
 
-            {MOCK_MODULES.map((m) => (
+            {modules.map((m) => (
               <Col key={m.key} lg={8} sm={12} xl={6} xs={24}>
                 <Badge.Ribbon
                   color={m.kind === "cms" ? "geekblue" : "cyan"}
-                  text={KIND_LABEL.tool}
+                  text={KIND_LABEL[m.kind]}
                 >
                   <Card
                     hoverable
@@ -534,7 +100,7 @@ function HomePage() {
                         {m.description}
                       </Typography.Paragraph>
                       <Space wrap size={[6, 6]}>
-                        {(m.tags ?? []).map((t) => (
+                        {m.tags.map((t) => (
                           <Tag
                             key={t}
                             style={{
@@ -578,7 +144,7 @@ function HomePage() {
               </Col>
             ))}
           </Row>
-        </Layout.Content>
+        </Content>
         <footer className={cx("app-footer")}>
           <Marquee
             className={cx("app-footer-marquee")}
