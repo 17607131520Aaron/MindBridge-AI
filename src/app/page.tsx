@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import {
+  Avatar,
   Badge,
+  Button,
   Card,
   Col,
   Divider,
@@ -14,14 +16,24 @@ import {
   Tag,
   Typography,
 } from "antd";
+import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Marquee from "@/widgets/Marquee";
-import { getModules, type Module } from "@/api";
+import { getModules, type Module, getUserInfo, logout } from "@/api";
 import classnames from "classnames/bind";
 import styles from "./page.scss";
 
 const cx = classnames.bind(styles);
 const { Content } = Layout;
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  avatar: string | null;
+  createdAt: string;
+}
 
 const KIND_LABEL = {
   site: "站点",
@@ -35,6 +47,8 @@ const AD_MARQUEE_TEXT =
 function HomePage() {
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     getModules()
@@ -42,11 +56,66 @@ function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    getUserInfo()
+      .then((data) => setUser(data.user))
+      .catch(() => {
+        // 如果获取用户信息失败，可能未登录，可以重定向到登录页面
+        // 这里暂时不处理，显示未登录状态
+      });
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setUser(null);
+      router.push("/login");
+    } catch (error) {
+      console.error("退出登录失败:", error);
+    }
+  };
+
   return (
     <div className={cx("app-home")}>
       <Layout style={{ height: "100%", background: "#0b1220" }}>
-        <div className={cx("app-header")}>顶部内容</div>
-        <Content style={{ padding: "0 20px 20px", overflow: "auto" }}>
+        <div className={cx("app-header")}>
+          <div className={cx("header-content")}>
+            <div className={cx("header-brand")}>
+              <span className={cx("header-title")}>MindBridge-AI</span>
+            </div>
+            <div className={cx("header-actions")}>
+              {user ? (
+                <div className={cx("user-menu")}>
+                  <div className={cx("user-info")}>
+                    <Avatar
+                      icon={<UserOutlined />}
+                      src={user.avatar}
+                      size={32}
+                      className={cx("user-avatar")}
+                    />
+                    <span className={cx("user-name")}>{user.username}</span>
+                  </div>
+                  <div className={cx("user-divider")} />
+                  <Button
+                    type="text"
+                    icon={<LogoutOutlined />}
+                    onClick={handleLogout}
+                    className={cx("logout-button")}
+                  >
+                    退出
+                  </Button>
+                </div>
+              ) : (
+                <Link href="/login">
+                  <Button type="primary" className={cx("login-button")}>
+                    登录
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+        <Content style={{ padding: "12px 20px 20px", overflow: "auto" }}>
           {loading ? (
             <div style={{ textAlign: "center", padding: 100 }}>
               <Spin size="large" />
@@ -88,7 +157,11 @@ function HomePage() {
                         },
                       }}
                     >
-                      <Space orientation="vertical" size={6} style={{ flex: 1 }}>
+                      <Space
+                        orientation="vertical"
+                        size={6}
+                        style={{ flex: 1 }}
+                      >
                         <Typography.Title
                           level={5}
                           style={{ margin: 0, color: "#e6f0ff" }}

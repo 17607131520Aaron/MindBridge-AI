@@ -2,15 +2,17 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import {
+  ArrowLeftOutlined,
   ArrowUpOutlined,
   BulbOutlined,
   ClockCircleOutlined,
   GlobalOutlined,
+  InboxOutlined,
+  LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PaperClipOutlined,
   PictureOutlined,
-  EllipsisOutlined,
   PlusOutlined,
   SearchOutlined,
   SketchOutlined,
@@ -18,6 +20,9 @@ import {
   UserOutlined,
   RobotOutlined,
 } from "@ant-design/icons";
+import { Avatar, Button } from "antd";
+import { useRouter } from "next/navigation";
+import { getUserInfo, logout } from "@/api";
 import cn from "classnames";
 import styles from "./ai-chat.module.scss";
 
@@ -31,9 +36,9 @@ interface Message {
 }
 
 const HISTORY = {
-  today: ["Nuxt 模板选择指南", "Next.js 创建项目指南"],
-  week: ["条码批量导出说明", "数据库迁移检查清单"],
-  month: ["报表权限配置", "移动端适配笔记"],
+  today: [],
+  week: [],
+  month: [],
 } as const;
 
 const MODE_COPY: Record<ChatMode, string> = {
@@ -59,6 +64,34 @@ const AiChatPage: React.FC = () => {
   const [streamingReasoning, setStreamingReasoning] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [user, setUser] = useState<{
+    id: number;
+    username: string;
+    avatar: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    getUserInfo()
+      .then((data) => setUser(data.user))
+      .catch(() => {
+        // 获取用户信息失败，可能未登录
+      });
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setUser(null);
+      router.push("/login");
+    } catch (error) {
+      console.error("退出登录失败:", error);
+    }
+  };
+
+  const handleBack = () => {
+    router.back();
+  };
 
   const toggleSidebar = () => setSidebarCollapsed((v) => !v);
 
@@ -89,7 +122,10 @@ const AiChatPage: React.FC = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: updatedMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
           deepThinking,
         }),
         signal: controller.signal,
@@ -141,7 +177,12 @@ const AiChatPage: React.FC = () => {
       if (fullContent) {
         setMessages((prev) => [
           ...prev,
-          { id: genId(), role: "assistant", content: fullContent, reasoning: fullReasoning || undefined },
+          {
+            id: genId(),
+            role: "assistant",
+            content: fullContent,
+            reasoning: fullReasoning || undefined,
+          },
         ]);
       }
     } catch (error: unknown) {
@@ -149,7 +190,11 @@ const AiChatPage: React.FC = () => {
       const errMsg = error instanceof Error ? error.message : "请求出错";
       setMessages((prev) => [
         ...prev,
-        { id: genId(), role: "assistant", content: `抱歉，出现了一个错误：${errMsg}` },
+        {
+          id: genId(),
+          role: "assistant",
+          content: `抱歉，出现了一个错误：${errMsg}`,
+        },
       ]);
     } finally {
       setStreaming(false);
@@ -175,25 +220,49 @@ const AiChatPage: React.FC = () => {
   };
 
   const hasMessages = messages.length > 0;
+  const historyAllEmpty =
+    HISTORY.today.length === 0 &&
+    HISTORY.week.length === 0 &&
+    HISTORY.month.length === 0;
 
   return (
     <div className={styles.shell}>
       <aside
-        className={cn(styles.sidebar, sidebarCollapsed && styles.sidebarCollapsed)}
+        className={cn(
+          styles.sidebar,
+          sidebarCollapsed && styles.sidebarCollapsed,
+        )}
         aria-hidden={sidebarCollapsed}
       >
         <div className={styles.sidebarTop}>
           <div className={styles.logoRow}>
+            <button
+              type="button"
+              className={styles.iconBtn}
+              aria-label="返回"
+              onClick={handleBack}
+            >
+              <ArrowLeftOutlined />
+            </button>
             <span className={styles.logoMark} aria-hidden>
               <ThunderboltOutlined />
             </span>
             <span className={styles.logoText}>MindBridge</span>
           </div>
           <div className={styles.sidebarActions}>
-            <button type="button" className={styles.iconBtn} aria-label="搜索会话">
+            <button
+              type="button"
+              className={styles.iconBtn}
+              aria-label="搜索会话"
+            >
               <SearchOutlined />
             </button>
-            <button type="button" className={styles.iconBtn} aria-label="收起侧栏" onClick={toggleSidebar}>
+            <button
+              type="button"
+              className={styles.iconBtn}
+              aria-label="收起侧栏"
+              onClick={toggleSidebar}
+            >
               <MenuFoldOutlined />
             </button>
             <button type="button" className={styles.iconBtn} aria-label="历史">
@@ -202,42 +271,105 @@ const AiChatPage: React.FC = () => {
           </div>
         </div>
 
-        <button type="button" className={styles.newChatBtn} onClick={handleNewChat}>
+        <button
+          type="button"
+          className={styles.newChatBtn}
+          onClick={handleNewChat}
+        >
           <PlusOutlined />
           开启新对话
         </button>
 
         <nav className={styles.historyWrap}>
-          <div className={styles.sectionLabel}>今天</div>
-          {HISTORY.today.map((title) => (
-            <button key={title} type="button" className={styles.historyItem}>
-              {title}
-            </button>
-          ))}
-          <div className={styles.sectionLabel}>7 天内</div>
-          {HISTORY.week.map((title) => (
-            <button key={title} type="button" className={styles.historyItem}>
-              {title}
-            </button>
-          ))}
-          <div className={styles.sectionLabel}>30 天内</div>
-          {HISTORY.month.map((title) => (
-            <button key={title} type="button" className={styles.historyItem}>
-              {title}
-            </button>
-          ))}
+          {historyAllEmpty ? (
+            <div className={styles.historyEmpty} role="status">
+              <InboxOutlined
+                className={styles.historyEmptyIcon}
+                aria-hidden
+              />
+              <div className={styles.historyEmptyTitle}>暂无对话记录</div>
+              <p className={styles.historyEmptyHint}>
+                开启新对话后，历史将显示在这里
+              </p>
+            </div>
+          ) : (
+            <>
+              {HISTORY.today.length > 0 && (
+                <div className={styles.sectionLabel}>今天</div>
+              )}
+              {HISTORY.today.map((title) => (
+                <button
+                  key={title}
+                  type="button"
+                  className={styles.historyItem}
+                >
+                  {title}
+                </button>
+              ))}
+              {HISTORY.week.length > 0 && (
+                <div className={styles.sectionLabel}>7 天内</div>
+              )}
+              {HISTORY.week.map((title) => (
+                <button
+                  key={title}
+                  type="button"
+                  className={styles.historyItem}
+                >
+                  {title}
+                </button>
+              ))}
+
+              {HISTORY.month.length > 0 && (
+                <div className={styles.sectionLabel}>30 天内</div>
+              )}
+              {HISTORY.month.map((title) => (
+                <button
+                  key={title}
+                  type="button"
+                  className={styles.historyItem}
+                >
+                  {title}
+                </button>
+              ))}
+            </>
+          )}
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <div className={styles.avatar} aria-hidden>
-            我
-          </div>
-          <div className={styles.userMeta}>
-            <div className={styles.userName}>我道他锋芒？</div>
-          </div>
-          <button type="button" className={styles.iconBtn} aria-label="更多">
-            <EllipsisOutlined />
-          </button>
+          {user ? (
+            <>
+              <div className={styles.avatar} aria-hidden>
+                <Avatar icon={<UserOutlined />} src={user.avatar} size={32} />
+              </div>
+              <div className={styles.userMeta}>
+                <div className={styles.userName}>{user.username}</div>
+              </div>
+              <button
+                type="button"
+                className={styles.iconBtn}
+                aria-label="退出登录"
+                onClick={handleLogout}
+              >
+                <LogoutOutlined />
+              </button>
+            </>
+          ) : (
+            <>
+              <div className={styles.avatar} aria-hidden>
+                <Avatar icon={<UserOutlined />} size={32} />
+              </div>
+              <div className={styles.userMeta}>
+                <div className={styles.userName}>未登录</div>
+              </div>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => router.push("/login")}
+              >
+                登录
+              </Button>
+            </>
+          )}
         </div>
       </aside>
 
@@ -264,7 +396,11 @@ const AiChatPage: React.FC = () => {
               </div>
 
               <div className={styles.modeRow}>
-                <div className={styles.modePill} role="tablist" aria-label="对话模式">
+                <div
+                  className={styles.modePill}
+                  role="tablist"
+                  aria-label="对话模式"
+                >
                   <button
                     type="button"
                     role="tab"
@@ -304,7 +440,12 @@ const AiChatPage: React.FC = () => {
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={cn(styles.messageRow, msg.role === "user" ? styles.messageUser : styles.messageAssistant)}
+                className={cn(
+                  styles.messageRow,
+                  msg.role === "user"
+                    ? styles.messageUser
+                    : styles.messageAssistant,
+                )}
               >
                 <div className={styles.messageAvatar}>
                   {msg.role === "user" ? <UserOutlined /> : <RobotOutlined />}
@@ -313,7 +454,9 @@ const AiChatPage: React.FC = () => {
                   {msg.reasoning && (
                     <details className={styles.reasoningBlock}>
                       <summary>思考过程</summary>
-                      <div className={styles.reasoningContent}>{msg.reasoning}</div>
+                      <div className={styles.reasoningContent}>
+                        {msg.reasoning}
+                      </div>
                     </details>
                   )}
                   {msg.content}
@@ -329,10 +472,15 @@ const AiChatPage: React.FC = () => {
                   {streamingReasoning && (
                     <details className={styles.reasoningBlock} open>
                       <summary>思考中...</summary>
-                      <div className={styles.reasoningContent}>{streamingReasoning}</div>
+                      <div className={styles.reasoningContent}>
+                        {streamingReasoning}
+                      </div>
                     </details>
                   )}
-                  {streamingContent || (!streamingReasoning ? <span className={styles.thinking}>思考中...</span> : null)}
+                  {streamingContent ||
+                    (!streamingReasoning ? (
+                      <span className={styles.thinking}>思考中...</span>
+                    ) : null)}
                   <span className={styles.cursor} />
                 </div>
               </div>
@@ -376,12 +524,19 @@ const AiChatPage: React.FC = () => {
                 </button>
               </div>
               <div className={styles.actions}>
-                <button type="button" className={styles.iconBtn} aria-label="附件">
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  aria-label="附件"
+                >
                   <PaperClipOutlined />
                 </button>
                 <button
                   type="button"
-                  className={cn(styles.sendBtn, streaming && styles.sendBtnDisabled)}
+                  className={cn(
+                    styles.sendBtn,
+                    streaming && styles.sendBtnDisabled,
+                  )}
                   aria-label="发送"
                   onClick={handleSend}
                   disabled={streaming}

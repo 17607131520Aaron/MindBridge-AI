@@ -50,3 +50,7 @@ export function getUserInfo() {
 export function logout() {
   return http.post('/api/auth/logout');
 }
+
+export function getUserById(userId: number) {
+  return http.get<UserData>(`/api/users/${userId}`);
+}
