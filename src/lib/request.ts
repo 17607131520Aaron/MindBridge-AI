@@ -26,7 +26,7 @@ interface RequestConfig extends Omit<RequestInit, "body"> {
   silent?: boolean;
 }
 
-type RequestData = BodyInit | Record<string, any> | null;
+type RequestData = BodyInit | Record<string, unknown> | null;
 
 export class RequestError extends Error {
   status: number;
@@ -231,9 +231,9 @@ export function createCancelToken() {
 export const http = {
   request,
   get: <T>(url: string, config?: RequestConfig) => request<T>(url, { ...config, method: "GET" }),
-  post: <T>(url: string, data?: RequestData, config?: RequestConfig) => requestWithData<T>(url, data, { ...config, method: "POST" }),
-  put: <T>(url: string, data?: RequestData, config?: RequestConfig) => requestWithData<T>(url, data, { ...config, method: "PUT" }),
-  patch: <T>(url: string, data?: RequestData, config?: RequestConfig) => requestWithData<T>(url, data, { ...config, method: "PATCH" }),
+  post: <T>(url: string, data?: RequestData, config?: RequestConfig) => requestWithData<T>(url, data ?? null, { ...config, method: "POST" }),
+  put: <T>(url: string, data?: RequestData, config?: RequestConfig) => requestWithData<T>(url, data ?? null, { ...config, method: "PUT" }),
+  patch: <T>(url: string, data?: RequestData, config?: RequestConfig) => requestWithData<T>(url, data ?? null, { ...config, method: "PATCH" }),
   delete: <T>(url: string, config?: RequestConfig) => request<T>(url, { ...config, method: "DELETE" }),
 };
 
