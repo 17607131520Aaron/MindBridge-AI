@@ -7,6 +7,15 @@ const JWT_EXPIRES_IN = '7d';
 const COOKIE_NAME = 'token';
 const SALT_ROUNDS = 12;
 
+function shouldUseSecureCookie(): boolean {
+  const configuredValue = process.env.AUTH_COOKIE_SECURE?.trim().toLowerCase();
+
+  if (configuredValue === 'true') return true;
+  if (configuredValue === 'false') return false;
+
+  return process.env.NODE_ENV === 'production';
+}
+
 export interface JwtPayload {
   userId: number;
   username: string;
@@ -36,7 +45,7 @@ export async function setAuthCookie(token: string): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: shouldUseSecureCookie(),
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7,
     path: '/',

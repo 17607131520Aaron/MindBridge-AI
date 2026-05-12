@@ -27,6 +27,7 @@ source "$ENV_FILE"
 set +a
 
 JWT_SECRET="your_jwt_secret"
+AUTH_COOKIE_SECURE="${AUTH_COOKIE_SECURE:-false}"
 
 echo "=== Step 1/4: Docker Login ==="
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
@@ -57,6 +58,7 @@ docker run -d \
   -e MYSQL_PASSWORD=$MYSQL_PASSWORD \
   -e MYSQL_DATABASE=$MYSQL_DATABASE \
   -e JWT_SECRET=$JWT_SECRET \
+  -e AUTH_COOKIE_SECURE=$AUTH_COOKIE_SECURE \
   -e SENSENOVA_API_KEY=$SENSENOVA_API_KEY \
   $FULL_IMAGE_NAME
 EOF

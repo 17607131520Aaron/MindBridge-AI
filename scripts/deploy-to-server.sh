@@ -22,6 +22,7 @@ source "$ENV_FILE"
 set +a
 
 JWT_SECRET="your_jwt_secret"
+AUTH_COOKIE_SECURE="${AUTH_COOKIE_SECURE:-false}"
 
 echo "=== Deploy to Server ==="
 echo "Server: $SERVER_USER@$SERVER_IP"
@@ -52,6 +53,7 @@ docker run -d \
   -e MYSQL_PASSWORD=$MYSQL_PASSWORD \
   -e MYSQL_DATABASE=$MYSQL_DATABASE \
   -e JWT_SECRET=$JWT_SECRET \
+  -e AUTH_COOKIE_SECURE=$AUTH_COOKIE_SECURE \
   -e SENSENOVA_API_KEY=$SENSENOVA_API_KEY \
   $IMAGE_NAME
 EOF
