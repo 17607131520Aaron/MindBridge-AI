@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { message } from "antd";
 
 type Primitive = string | number | boolean;
 
@@ -6,15 +7,26 @@ type QueryValue = Primitive | null | undefined | Array<Primitive | null | undefi
 
 type QueryParams = Record<string, QueryValue>;
 
+interface ApiResponse<T = unknown> {
+  code: number;
+  message: string;
+  data: T;
+}
+
 interface RequestConfig extends Omit<RequestInit, "body"> {
   baseURL?: string;
-  query?: QueryParams;
-  body?: BodyInit | Record<string, unknown> | null;
+  params?: QueryParams;
   /** 自定义 token cookie 名称，默认 "token" */
   tokenKey?: string;
   /** 跳过自动注入 token */
   skipAuth?: boolean;
+  /** 返回完整响应体 { code, data, message }，默认 false 只返回 data */
+  rawResponse?: boolean;
+  /** 禁用自动错误提示 */
+  silent?: boolean;
 }
+
+type RequestData = BodyInit | Record<string, any> | null;
 
 export class RequestError extends Error {
   status: number;
@@ -30,6 +42,10 @@ export class RequestError extends Error {
   }
 }
 
+function showError(msg: string) {
+  message.error(msg);
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== "object") {
     return false;
@@ -39,11 +55,11 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
-function buildURL(input: string, baseURL?: string, query?: QueryParams) {
+function buildURL(input: string, baseURL?: string, params?: QueryParams) {
   const url = baseURL ? new URL(input, baseURL) : new URL(input, "http://localhost");
 
-  if (query) {
-    for (const [key, rawValue] of Object.entries(query)) {
+  if (params) {
+    for (const [key, rawValue] of Object.entries(params)) {
       if (rawValue == null) {
         continue;
       }
@@ -63,7 +79,7 @@ function buildURL(input: string, baseURL?: string, query?: QueryParams) {
 
 function buildHeaders(
   headers?: HeadersInit,
-  body?: RequestConfig["body"],
+  body?: RequestData,
   options?: { tokenKey?: string; skipAuth?: boolean },
 ) {
   const nextHeaders = new Headers(headers);
@@ -86,7 +102,7 @@ function buildHeaders(
   return nextHeaders;
 }
 
-function buildBody(body: RequestConfig["body"], headers: Headers) {
+function buildBody(body: RequestData, headers: Headers) {
   if (body == null) {
     return undefined;
   }
@@ -119,35 +135,89 @@ async function parseResponse(response: Response) {
   return response.arrayBuffer();
 }
 
-async function request<T>(input: string, config: RequestConfig = {}): Promise<T> {
-  const { baseURL, query, body, headers, tokenKey, skipAuth, signal, ...init } = config;
-  const nextHeaders = buildHeaders(headers, body, { tokenKey, skipAuth });
-  const response = await fetch(buildURL(input, baseURL, query), {
+function processResponse<T>(result: unknown, rawResponse?: boolean): T {
+  if (rawResponse) {
+    return result as T;
+  }
+
+  const res = result as ApiResponse<T>;
+
+  if (res && typeof res === "object" && "data" in res) {
+    return res.data;
+  }
+
+  return result as T;
+}
+
+async function request<T>(url: string, config: RequestConfig = {}): Promise<T> {
+  const { baseURL, params, headers, tokenKey, skipAuth, rawResponse, silent, signal, ...init } = config;
+  const nextHeaders = buildHeaders(headers, undefined, { tokenKey, skipAuth });
+  const response = await fetch(buildURL(url, baseURL, params), {
     ...init,
     headers: nextHeaders,
-    body: buildBody(body, nextHeaders),
     signal,
   });
 
-  const data = await parseResponse(response);
+  const result = await parseResponse(response);
 
   if (!response.ok) {
-    throw new RequestError(`Request failed with status ${response.status}`, {
+    const errMsg = (result as ApiResponse)?.message || `请求失败 (${response.status})`;
+    if (!silent) showError(errMsg);
+    throw new RequestError(errMsg, {
       status: response.status,
       statusText: response.statusText,
-      data,
+      data: result,
     });
   }
 
-  return data as T;
+  const res = result as ApiResponse;
+
+  if (res && typeof res === "object" && "code" in res && res.code !== 0) {
+    if (!silent) showError(res.message || "请求失败");
+    throw new RequestError(res.message, {
+      status: response.status,
+      statusText: response.statusText,
+      data: result,
+    });
+  }
+
+  return processResponse<T>(result, rawResponse);
 }
 
-type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+function requestWithData<T>(url: string, data: RequestData, config: RequestConfig = {}): Promise<T> {
+  const { baseURL, params, headers, tokenKey, skipAuth, rawResponse, silent, signal, ...init } = config;
+  const nextHeaders = buildHeaders(headers, data, { tokenKey, skipAuth });
+  return fetch(buildURL(url, baseURL, params), {
+    ...init,
+    headers: nextHeaders,
+    body: buildBody(data, nextHeaders),
+    signal,
+  }).then(async (response) => {
+    const result = await parseResponse(response);
 
-function withMethod(method: Method) {
-  return function <T>(input: string, config: Omit<RequestConfig, "method"> = {}) {
-    return request<T>(input, { ...config, method });
-  };
+    if (!response.ok) {
+      const errMsg = (result as ApiResponse)?.message || `请求失败 (${response.status})`;
+      if (!silent) showError(errMsg);
+      throw new RequestError(errMsg, {
+        status: response.status,
+        statusText: response.statusText,
+        data: result,
+      });
+    }
+
+    const res = result as ApiResponse;
+
+    if (res && typeof res === "object" && "code" in res && res.code !== 0) {
+      if (!silent) showError(res.message || "请求失败");
+      throw new RequestError(res.message, {
+        status: response.status,
+        statusText: response.statusText,
+        data: result,
+      });
+    }
+
+    return processResponse<T>(result, rawResponse);
+  });
 }
 
 export function createCancelToken() {
@@ -160,13 +230,13 @@ export function createCancelToken() {
 
 export const http = {
   request,
-  get: withMethod("GET"),
-  post: withMethod("POST"),
-  put: withMethod("PUT"),
-  patch: withMethod("PATCH"),
-  delete: withMethod("DELETE"),
+  get: <T>(url: string, config?: RequestConfig) => request<T>(url, { ...config, method: "GET" }),
+  post: <T>(url: string, data?: RequestData, config?: RequestConfig) => requestWithData<T>(url, data, { ...config, method: "POST" }),
+  put: <T>(url: string, data?: RequestData, config?: RequestConfig) => requestWithData<T>(url, data, { ...config, method: "PUT" }),
+  patch: <T>(url: string, data?: RequestData, config?: RequestConfig) => requestWithData<T>(url, data, { ...config, method: "PATCH" }),
+  delete: <T>(url: string, config?: RequestConfig) => request<T>(url, { ...config, method: "DELETE" }),
 };
 
-export type { QueryParams, RequestConfig };
+export type { QueryParams, RequestConfig, ApiResponse };
 
 export default http;

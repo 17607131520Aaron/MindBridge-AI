@@ -4,15 +4,7 @@ import { useState } from "react";
 import { Button, Card, Form, Input, message, Typography } from "antd";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { http } from "@/lib/request";
-
-interface LoginResponse {
-  code: number;
-  message: string;
-  data: {
-    user: { username: string };
-  };
-}
+import { login } from "@/api";
 
 function LoginPage() {
   const router = useRouter();
@@ -22,11 +14,7 @@ function LoginPage() {
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
-      const res = await http.post<LoginResponse>("/api/auth/login", {
-        body: values,
-        skipAuth: true,
-      });
-
+      await login(values);
       messageApi.success("登录成功");
       setTimeout(() => router.push("/"), 500);
     } catch (err: unknown) {
