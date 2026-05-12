@@ -1,0 +1,90 @@
+.marquee {
+  --marquee-fg: #1e293b;
+
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 0.625rem 0;
+  border-radius: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(241, 245, 249, 0.92) 100%
+  );
+  border: none;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 6%,
+    #000 94%,
+    transparent
+  );
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.45;
+  color: var(--marquee-fg);
+}
+
+.marquee--idle {
+  mask-image: none;
+}
+
+/** 与 .marquee-idle 同宽与同水平 padding，用于测量是否单行溢出 */
+.marquee-measure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 1.25rem;
+  visibility: hidden;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.marquee-idle {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 1.25rem;
+}
+
+.marquee-idle-text {
+  white-space: nowrap;
+}
+
+.marquee-track {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: max-content;
+  animation-name: marquee-scroll-ltr;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.marquee-segment {
+  display: inline-block;
+  flex-shrink: 0;
+  padding-right: 3.5rem;
+  white-space: nowrap;
+  color: var(--marquee-fg);
+}
+
+/** 从左向右：双段无缝循环（-50% → 0 与 0 → -50% 视觉等价） */
+@keyframes marquee-scroll-ltr {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
