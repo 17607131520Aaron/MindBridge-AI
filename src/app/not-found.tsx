@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 
 export default function NotFound() {
   const router = useRouter();
-
   return (
     <div className="flex min-h-[100dvh] flex-1 flex-col items-center justify-center px-4 py-10">
       <Result
