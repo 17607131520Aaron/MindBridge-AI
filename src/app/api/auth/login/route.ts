@@ -1,19 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
-import { hashPassword, verifyPassword, signToken, setAuthCookie } from '@/lib/auth';
-import { validateUsername, validatePassword } from '@/lib/validator';
+import { ensureAuthSessionSchema, query } from '@/lib/db';
+import { verifyPassword, signToken, setAuthCookie } from '@/lib/auth';
+import { validateBrowserSessionId, validateUsername, validatePassword } from '@/lib/validator';
 
 interface User {
   id: number;
   username: string;
   password: string;
   status: number;
+  session_version: number;
+  current_browser_session_id: string | null;
+}
+
+interface SessionVersionRow {
+  session_version: number;
 }
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureAuthSessionSchema();
+
     const body = await request.json();
-    const { username, password } = body;
+    const { username, password, browserSessionId } = body;
 
     const usernameResult = validateUsername(username);
     if (!usernameResult.valid) {
@@ -31,8 +39,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const browserSessionResult = validateBrowserSessionId(browserSessionId);
+    if (!browserSessionResult.valid) {
+      return NextResponse.json(
+        { code: 400, message: browserSessionResult.errors[0] },
+        { status: 400 }
+      );
+    }
+
     const users = await query<User[]>(
-      'SELECT id, username, password, status FROM users WHERE username = ?',
+      'SELECT id, username, password, status, session_version, current_browser_session_id FROM users WHERE username = ?',
       [username.trim()]
     );
 
@@ -60,10 +76,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = signToken({ userId: user.id, username: user.username });
-    await setAuthCookie(token);
+    const normalizedBrowserSessionId = browserSessionId.trim();
+    const isSameBrowserSession =
+      user.current_browser_session_id != null &&
+      user.current_browser_session_id === normalizedBrowserSessionId;
 
-    await query('UPDATE users SET last_login_at = NOW() WHERE id = ?', [user.id]);
+    let sessionVersion = user.session_version;
+
+    if (isSameBrowserSession) {
+      await query(
+        'UPDATE users SET current_browser_session_id = ?, last_login_at = NOW() WHERE id = ?',
+        [normalizedBrowserSessionId, user.id]
+      );
+    } else {
+      await query(
+        'UPDATE users SET session_version = session_version + 1, current_browser_session_id = ?, last_login_at = NOW() WHERE id = ?',
+        [normalizedBrowserSessionId, user.id]
+      );
+
+      const sessionRows = await query<SessionVersionRow[]>(
+        'SELECT session_version FROM users WHERE id = ?',
+        [user.id]
+      );
+
+      sessionVersion = sessionRows[0]?.session_version ?? user.session_version + 1;
+    }
+
+    const token = signToken({ userId: user.id, username: user.username, sessionVersion });
+    await setAuthCookie(token);
 
     return NextResponse.json({
       code: 0,

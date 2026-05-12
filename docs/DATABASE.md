@@ -20,6 +20,16 @@ MYSQL_DATABASE=mindbridge_ai
 mysql -u root -p < scripts/init-db.sql
 ```
 
+如果数据库已经初始化过，登录单端在线功能需要补一列：
+
+```sql
+ALTER TABLE users
+ADD COLUMN session_version INT NOT NULL DEFAULT 0 COMMENT '会话版本' AFTER status;
+
+ALTER TABLE users
+ADD COLUMN current_browser_session_id VARCHAR(100) DEFAULT NULL COMMENT '当前浏览器会话标识' AFTER session_version;
+```
+
 ## 3. 使用数据库连接
 
 在API路由中导入并使用：

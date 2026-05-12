@@ -3,6 +3,7 @@ import { http } from '@/lib/request';
 interface LoginParams {
   username: string;
   password: string;
+  browserSessionId: string;
   [key: string]: unknown;
 }
 

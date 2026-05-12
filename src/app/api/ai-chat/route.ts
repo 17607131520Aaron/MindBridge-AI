@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+import { ensureAuthSessionSchema } from "@/lib/db";
+import { validateAuthUser } from "@/lib/auth";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -13,6 +15,20 @@ interface RequestBody {
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureAuthSessionSchema();
+    const authResult = await validateAuthUser();
+
+    if (!authResult.user) {
+      const message =
+        authResult.reason === "stale"
+          ? "账号在其他地方已登录，请重新登录"
+          : "未登录";
+      return new Response(JSON.stringify({ code: 401, message }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const body: RequestBody = await request.json();
     const { messages, model, deepThinking } = body;
 

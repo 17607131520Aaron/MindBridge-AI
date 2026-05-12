@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { login, register } from "@/api";
+import { getBrowserSessionId } from "@/lib/browserSession";
 import "./auth.scss";
 
 const { Text } = Typography;
@@ -25,7 +26,10 @@ export default function AuthPage() {
   const onLogin = async (values: { username: string; password: string }) => {
     setLoading(true);
     try {
-      await login(values);
+      await login({
+        ...values,
+        browserSessionId: getBrowserSessionId(),
+      });
       messageApi.success("登录成功");
       setTimeout(() => router.push("/"), 500);
     } catch (err: unknown) {

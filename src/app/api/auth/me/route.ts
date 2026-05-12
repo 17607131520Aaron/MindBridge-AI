@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
-import { getAuthUser } from '@/lib/auth';
+import { ensureAuthSessionSchema, query } from '@/lib/db';
+import { removeAuthCookie, validateAuthUser } from '@/lib/auth';
 
 interface User {
   id: number;
@@ -12,18 +12,24 @@ interface User {
 
 export async function GET() {
   try {
-    const authUser = await getAuthUser();
+    await ensureAuthSessionSchema();
+    const authResult = await validateAuthUser();
 
-    if (!authUser) {
+    if (!authResult.user) {
+      await removeAuthCookie();
+      const message =
+        authResult.reason === 'stale'
+          ? '账号在其他地方已登录，请重新登录'
+          : '未登录';
       return NextResponse.json(
-        { code: 401, message: '未登录' },
+        { code: 401, message },
         { status: 401 }
       );
     }
 
     const users = await query<User[]>(
       'SELECT id, username, email, avatar, created_at FROM users WHERE id = ?',
-      [authUser.userId]
+      [authResult.user.userId]
     );
 
     if (users.length === 0) {

@@ -106,7 +106,7 @@ function HomePage() {
                   </Button>
                 </div>
               ) : (
-                <Link href="/login">
+                <Link href="/login" prefetch={false}>
                   <Button type="primary" className={cx("login-button")}>
                     登录
                   </Button>

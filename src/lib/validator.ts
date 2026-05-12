@@ -66,6 +66,30 @@ export function validatePassword(password: unknown): ValidationResult {
   return { valid: errors.length === 0, errors };
 }
 
+export function validateBrowserSessionId(sessionId: unknown): ValidationResult {
+  const errors: string[] = [];
+
+  if (!sessionId || typeof sessionId !== 'string') {
+    return { valid: false, errors: ['浏览器会话标识缺失'] };
+  }
+
+  const trimmed = sessionId.trim();
+
+  if (trimmed.length < 16) {
+    errors.push('浏览器会话标识无效');
+  }
+
+  if (trimmed.length > 100) {
+    errors.push('浏览器会话标识过长');
+  }
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+    errors.push('浏览器会话标识格式错误');
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
 export function sanitizeInput(input: string): string {
   return input
     .trim()

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { Geist, Geist_Mono } from "next/font/google";
+import AuthSessionGuard from "@/components/AuthSessionGuard";
 import NavigationSubscriber from "@/components/NavigationSubscriber";
 import "@/style/globals.scss";
 
@@ -31,6 +32,7 @@ export default function RootLayout({
     >
       <AntdRegistry>
         <body className="min-h-full flex flex-col">
+          <AuthSessionGuard />
           <NavigationSubscriber />
           {children}
         </body>

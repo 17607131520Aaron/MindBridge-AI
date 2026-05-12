@@ -23,6 +23,7 @@ import {
 import { Avatar, Button } from "antd";
 import { useRouter } from "next/navigation";
 import { getUserInfo, logout } from "@/api";
+import { publishAuthExpired } from "@/utils/authEventBus";
 import cn from "classnames";
 import styles from "./ai-chat.module.scss";
 
@@ -132,6 +133,17 @@ const AiChatPage: React.FC = () => {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          const err = await response.json().catch(() => null);
+          const errMsg = err?.message || "登录已失效，请重新登录";
+          if (errMsg.includes("其他地方已登录")) {
+            publishAuthExpired({ message: errMsg });
+            return;
+          }
+          setUser(null);
+          router.replace("/login");
+          return;
+        }
         const err = await response.json().catch(() => null);
         throw new Error(err?.message || "请求失败");
       }
