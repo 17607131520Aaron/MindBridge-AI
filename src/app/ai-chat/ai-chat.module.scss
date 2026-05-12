@@ -207,7 +207,7 @@ $accentSoft: rgba(76, 127, 255, 0.18);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   padding: 24px 20px 32px;
 }
 
@@ -305,6 +305,119 @@ $accentSoft: rgba(76, 127, 255, 0.18);
 .modeBtnActive {
   background: $accent;
   color: #fff;
+}
+
+.messageList {
+  flex: 1;
+  width: 100%;
+  max-width: 720px;
+  overflow-y: auto;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+}
+
+.messageRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.messageUser {
+  flex-direction: row-reverse;
+
+  .messageBubble {
+    background: $accent;
+    color: #fff;
+    border-radius: 18px 18px 4px 18px;
+  }
+}
+
+.messageAssistant {
+  .messageBubble {
+    background: $surface;
+    color: $text;
+    border-radius: 18px 18px 18px 4px;
+  }
+}
+
+.messageAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+  color: $muted;
+}
+
+.messageBubble {
+  padding: 10px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 80%;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.thinking {
+  color: $muted;
+}
+
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: $accent;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.reasoningBlock {
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+
+  summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: $muted;
+    user-select: none;
+    margin-bottom: 6px;
+  }
+}
+
+.reasoningContent {
+  font-size: 13px;
+  color: rgba(161, 161, 161, 0.9);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.sendBtnDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+
+  &:hover {
+    filter: none;
+  }
+
+  &:active {
+    transform: none;
+  }
 }
 
 .composerWrap {
