@@ -114,12 +114,13 @@ const AiChatPage: React.FC = () => {
     setDraft("");
     setStreaming(true);
     setStreamingContent("");
+    setStreamingReasoning("");
 
     const controller = new AbortController();
     abortRef.current = controller;
 
     try {
-      const response = await fetch("/api/ai-chat", {
+      const response = await fetch("/api/ai-chat-nest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -167,26 +168,34 @@ const AiChatPage: React.FC = () => {
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed || !trimmed.startsWith("data:")) continue;
+
           const data = trimmed.slice(5).trim();
           if (data === "[DONE]") continue;
 
           try {
             const parsed = JSON.parse(data);
+            if (parsed.error) {
+              throw new Error(parsed.error);
+            }
+
             if (parsed.reasoning) {
               fullReasoning += parsed.reasoning;
               setStreamingReasoning(fullReasoning);
             }
+
             if (parsed.content) {
               fullContent += parsed.content;
               setStreamingContent(fullContent);
             }
-          } catch {
-            // skip
+          } catch (error) {
+            if (error instanceof Error) {
+              throw error;
+            }
           }
         }
       }
 
-      if (fullContent) {
+      if (fullContent || fullReasoning) {
         setMessages((prev) => [
           ...prev,
           {

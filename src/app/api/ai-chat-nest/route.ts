@@ -1,6 +1,4 @@
 import { NextRequest } from "next/server";
-import { ensureAuthSessionSchema } from "@/lib/db";
-import { validateAuthUser } from "@/lib/auth";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -22,17 +20,6 @@ function toJsonResponse(status: number, message: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    await ensureAuthSessionSchema();
-    const authResult = await validateAuthUser();
-
-    if (!authResult.user) {
-      const message =
-        authResult.reason === "stale"
-          ? "账号在其他地方已登录，请重新登录"
-          : "未登录";
-      return toJsonResponse(401, message);
-    }
-
     const body: RequestBody = await request.json();
     const { messages, model, deepThinking } = body;
 
@@ -44,25 +31,17 @@ export async function POST(request: NextRequest) {
       process.env.MULTI_SERVICE_AI_BASE_URL ||
       process.env.NEXT_PUBLIC_MULTI_SERVICE_AI_BASE_URL ||
       "http://127.0.0.1:9999";
-    const apiToken = process.env.MULTI_SERVICE_AI_TOKEN || "";
-
-    if (!apiToken) {
-      return toJsonResponse(500, "未配置 MULTI_SERVICE_AI_TOKEN");
-    }
-
-    const sanitizedMessages = messages.map((message) => ({
-      role: message.role,
-      content: String(message.content),
-    }));
 
     const upstreamResponse = await fetch(`${apiBaseUrl}/web/ai/chat/stream`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiToken}`,
       },
       body: JSON.stringify({
-        messages: sanitizedMessages,
+        messages: messages.map((message) => ({
+          role: message.role,
+          content: String(message.content),
+        })),
         ...(model ? { model } : {}),
         ...(deepThinking ? { deepThinking: true } : {}),
       }),
@@ -164,7 +143,7 @@ export async function POST(request: NextRequest) {
             }
           }
         } catch (error) {
-          console.error("Stream proxy error:", error);
+          console.error("AI Chat Nest proxy stream error:", error);
         } finally {
           controller.close();
         }
@@ -179,7 +158,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("AI Chat proxy error:", error);
+    console.error("AI Chat Nest proxy error:", error);
     return toJsonResponse(500, "服务器内部错误");
   }
 }
