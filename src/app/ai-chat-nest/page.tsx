@@ -22,7 +22,7 @@ import {
 } from "@ant-design/icons";
 import { Avatar, Button } from "antd";
 import { useRouter } from "next/navigation";
-import { getUserInfo, logout } from "@/api";
+import { logout } from "@/api";
 import { publishAuthExpired } from "@/utils/authEventBus";
 import cn from "classnames";
 import styles from "./ai-chat.module.scss";
@@ -72,13 +72,13 @@ const AiChatPage: React.FC = () => {
     avatar: string | null;
   } | null>(null);
 
-  useEffect(() => {
-    getUserInfo()
-      .then((data) => setUser(data.user))
-      .catch(() => {
-        // 获取用户信息失败，可能未登录
-      });
-  }, []);
+  // useEffect(() => {
+  //   getUserInfo()
+  //     .then((data) => setUser(data.user))
+  //     .catch(() => {
+  //       // 获取用户信息失败，可能未登录
+  //     });
+  // }, []);
 
   const handleLogout = async () => {
     try {
