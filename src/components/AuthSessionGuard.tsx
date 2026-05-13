@@ -24,9 +24,10 @@ export default function AuthSessionGuard() {
   const [modal, contextHolder] = Modal.useModal();
   const handlingRef = useRef(false);
   const lastCheckAtRef = useRef(0);
+  const isPublicRoute = pathname === "/" || pathname === "/login";
 
   useEffect(() => {
-    if (pathname === "/login") {
+    if (isPublicRoute) {
       handlingRef.current = false;
       return;
     }
@@ -42,11 +43,11 @@ export default function AuthSessionGuard() {
       await modal.warning({
         title: "登录已失效",
         content: message,
-        okText: "重新登录",
+        okText: "返回首页",
         centered: true,
       });
 
-      router.replace("/login");
+      router.replace("/");
     };
 
     const unsubscribe = subscribeAuthExpired(({ message }) => {
@@ -74,18 +75,20 @@ export default function AuthSessionGuard() {
           },
         });
 
-        if (response.status !== 401) {
-          router.replace("/login");
+        if (response.status === 401) {
+          const result = await response.json().catch(() => null);
+          const message =
+            result?.message === "未登录"
+              ? "登录状态已失效，请重新登录"
+              : (result?.message ?? "账号在其他地方已登录，请重新登录");
+
+          await handleExpired(message);
           return;
         }
 
-        const result = await response.json().catch(() => null);
-        const message =
-          result?.message === "未登录"
-            ? "账号在其他地方已登录，请重新登录"
-            : (result?.message ?? "账号在其他地方已登录，请重新登录");
-
-        await handleExpired(message);
+        if (!response.ok) {
+          return;
+        }
       } catch {
         // ignore transient network errors
       }
@@ -115,7 +118,7 @@ export default function AuthSessionGuard() {
       window.removeEventListener("focus", handleFocus);
       unsubscribe();
     };
-  }, [modal, pathname, router]);
+  }, [isPublicRoute, modal, pathname, router]);
 
   return contextHolder;
 }

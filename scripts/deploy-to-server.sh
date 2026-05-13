@@ -3,8 +3,8 @@
 set -e
 
 SERVER_IP="120.53.227.126"
-SERVER_USER="ubuntu"
-SERVER_PASSWORD="your_server_password"
+SERVER_USER="root"
+SERVER_PASSWORD="5820@Feng"
 IMAGE_NAME="yafenghuang777/mindbridge-ai"
 CONTAINER_NAME="mindbridge-ai"
 
