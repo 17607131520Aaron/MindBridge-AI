@@ -75,6 +75,7 @@ export default function AuthSessionGuard() {
         });
 
         if (response.status !== 401) {
+          router.replace("/login");
           return;
         }
 
